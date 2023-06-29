@@ -2,11 +2,12 @@ import enum
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from sklearn.datasets import make_moons
 from torch.utils.data import DataLoader, Dataset
 
 
-def heatmap(points, filename='heatmap.png'):
+def heatmap(points, filename="heatmap.png"):
     """
     Draws a heatmap of the 2D distribution underlying points.
     https://stackoverflow.com/questions/2369492/generate-a-heatmap-in-matplotlib-using-a-scatter-data-set
@@ -17,13 +18,13 @@ def heatmap(points, filename='heatmap.png'):
     axis_lim = 3
     axis_bins = np.linspace(-axis_lim, axis_lim, 100)
 
-    plt.gca().set_aspect('equal')
+    plt.gca().set_aspect("equal")
     plt.hist2d(x, y, bins=[axis_bins, axis_bins])
-    plt.axis('off')
-    plt.savefig(filename, bbox_inches='tight', transparent=True, pad_inches=0)
+    plt.axis("off")
+    plt.savefig(filename, bbox_inches="tight", transparent=True, pad_inches=0)
 
 
-def scatter(points, filename='scatter.png', enable_color_interpolation=True):
+def scatter(points, filename="scatter.png", enable_color_interpolation=True):
     """Draws a scatter, fine plots of the given points.
     TODO Set the x,y limits."""
     xlim, ylim = 3, 3
@@ -33,7 +34,7 @@ def scatter(points, filename='scatter.png', enable_color_interpolation=True):
     plt.xlim(-xlim, xlim)
     plt.ylim(-ylim, ylim)
     ax = plt.gca()
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
     # ax.set_facecolor('#430154')
     for spine in ax.spines.values():
         spine.set_visible(False)
@@ -43,8 +44,8 @@ def scatter(points, filename='scatter.png', enable_color_interpolation=True):
         colors = np.arange(0, N)
     else:
         colors = np.array([[0.525776, 0.833491, 0.288127]])
-    plt.scatter(px, py, s=1.0, marker='o', c=colors, cmap='rainbow', linewidths=0, alpha=1.0)
-    plt.savefig(filename, bbox_inches='tight', transparent=False, pad_inches=0)
+    plt.scatter(px, py, s=1.0, marker="o", c=colors, cmap="rainbow", linewidths=0, alpha=1.0)
+    plt.savefig(filename, bbox_inches="tight", transparent=False, pad_inches=0)
 
 
 def make_checkerboard(n_samples):
@@ -101,7 +102,7 @@ class RingSampler(BaseSampler):
         assert indices.shape[0] == N
         centers = self.centers[indices]
 
-        radii_eps = (np.random.rand(N) - .5) * self.width
+        radii_eps = (np.random.rand(N) - 0.5) * self.width
         radii = self.radii[indices] + radii_eps
 
         # Randomly assigns points on the ring
@@ -133,7 +134,6 @@ class OlympicRingSampler(RingSampler):
 
 
 class SquareSampler(BaseSampler):
-
     def sample(self, N):
         # Generate numbers for the four edges
         K = self.num_objects
@@ -162,7 +162,7 @@ class SquareSampler(BaseSampler):
         indices = np.concatenate(indices).astype(int)
 
         # Then, assign the points randomly to the squares
-        radii_eps = (np.random.rand(N) - .5) * self.width
+        radii_eps = (np.random.rand(N) - 0.5) * self.width
         radii = self.radii[indices] + radii_eps
 
         px, py = px * radii, py * radii
@@ -192,6 +192,7 @@ class OlympicSquareSampler(SquareSampler):
 
 class Synthetic2DType(enum.Enum):
     """Which type of synthetic 2D datasets."""
+
     MOONS = enum.auto()
     CHECKERBOARD = enum.auto()
     CONCENTRIC_RINGS = enum.auto()
@@ -255,5 +256,5 @@ def save_plots():
         scatter(points, filename=f"synthetic_images/{shape.value}_{shape}_Scatter.png")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     save_plots()

@@ -1,6 +1,7 @@
 import argparse
 import os
 import urllib
+
 from pathlib import Path
 
 import gdown
@@ -27,8 +28,7 @@ def download_synthetic_checkpoints():
     """
     path = "./models/synthetic"
     Path(path).mkdir(parents=True, exist_ok=True)
-    gdown.download_folder(Constant.SyntheticURL, output=path,
-                          quiet=False, use_cookies=False)
+    gdown.download_folder(Constant.SyntheticURL, output=path, quiet=False, use_cookies=False)
 
 
 def download_imagenet_checkpoints():
@@ -45,18 +45,12 @@ def download_imagenet_dataset():
     """Downloads a subset of ImageNet validation set."""
     path = "./models/imagenet_dataset"
     Path(path).mkdir(parents=True, exist_ok=True)
-    gdown.download_folder(Constant.ImageNetDatasetURL, output=path,
-                          quiet=False, use_cookies=False)
+    gdown.download_folder(Constant.ImageNetDatasetURL, output=path, quiet=False, use_cookies=False)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--exp",
-        type=str,
-        default="",
-        help="Which experiment in the DDIBs paper to run."
-    )
+    parser.add_argument("--exp", type=str, default="", help="Which experiment in the DDIBs paper to run.")
     args = parser.parse_args()
 
     exp = args.exp
@@ -69,8 +63,6 @@ def main():
         download_imagenet_checkpoints()
     elif exp == Experiment.ImageNetDataset:
         download_imagenet_dataset()
-
-
 
 
 if __name__ == "__main__":

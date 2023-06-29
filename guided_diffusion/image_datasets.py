@@ -4,21 +4,22 @@ import random
 
 import blobfile as bf
 import numpy as np
-from PIL import Image
+
 from mpi4py import MPI
+from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
 
 def load_data(
-        *,
-        data_dir,
-        batch_size,
-        image_size,
-        class_cond=False,
-        deterministic=False,
-        random_crop=False,
-        random_flip=True,
-        in_channels=3
+    *,
+    data_dir,
+    batch_size,
+    image_size,
+    class_cond=False,
+    deterministic=False,
+    random_crop=False,
+    random_flip=True,
+    in_channels=3,
 ):
     """
     For a dataset, create a generator over (images, kwargs) pairs.
@@ -58,27 +59,18 @@ def load_data(
         num_shards=MPI.COMM_WORLD.Get_size(),
         random_crop=random_crop,
         random_flip=random_flip,
-        in_channels=in_channels
+        in_channels=in_channels,
     )
     if deterministic:
-        loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=True
-        )
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=True)
     else:
-        loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True
-        )
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True)
     while True:
         yield from loader
 
 
 def load_source_data_for_domain_translation(
-        *,
-        batch_size,
-        image_size,
-        data_dir="./experiments/imagenet",
-        in_channels=3,
-        class_cond=True
+    *, batch_size, image_size, data_dir="./experiments/imagenet", in_channels=3, class_cond=True
 ):
     """
     This function is new in DDIBs: loads the source dataset for translation.
@@ -103,7 +95,7 @@ def load_source_data_for_domain_translation(
         classes=classes,
         filepaths=all_files,
         shard=MPI.COMM_WORLD.Get_rank(),
-        num_shards=MPI.COMM_WORLD.Get_size()
+        num_shards=MPI.COMM_WORLD.Get_size(),
     )
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1)
     yield from loader
@@ -135,16 +127,16 @@ def _list_image_files_recursively(data_dir):
 
 class ImageDataset(Dataset):
     def __init__(
-            self,
-            resolution,
-            image_paths,
-            classes=None,
-            shard=0,
-            num_shards=1,
-            random_crop=False,
-            random_flip=True,
-            in_channels=3,
-            filepaths=None
+        self,
+        resolution,
+        image_paths,
+        classes=None,
+        shard=0,
+        num_shards=1,
+        random_crop=False,
+        random_flip=True,
+        in_channels=3,
+        filepaths=None,
     ):
         super().__init__()
         self.resolution = resolution
@@ -193,19 +185,15 @@ def center_crop_arr(pil_image, image_size):
     # argument, which uses BOX downsampling at powers of two first.
     # Thus, we do it by hand to improve downsample quality.
     while min(*pil_image.size) >= 2 * image_size:
-        pil_image = pil_image.resize(
-            tuple(x // 2 for x in pil_image.size), resample=Image.BOX
-        )
+        pil_image = pil_image.resize(tuple(x // 2 for x in pil_image.size), resample=Image.BOX)
 
     scale = image_size / min(*pil_image.size)
-    pil_image = pil_image.resize(
-        tuple(round(x * scale) for x in pil_image.size), resample=Image.BICUBIC
-    )
+    pil_image = pil_image.resize(tuple(round(x * scale) for x in pil_image.size), resample=Image.BICUBIC)
 
     arr = np.array(pil_image)
     crop_y = (arr.shape[0] - image_size) // 2
     crop_x = (arr.shape[1] - image_size) // 2
-    return arr[crop_y: crop_y + image_size, crop_x: crop_x + image_size]
+    return arr[crop_y : crop_y + image_size, crop_x : crop_x + image_size]
 
 
 def random_crop_arr(pil_image, image_size, min_crop_frac=0.8, max_crop_frac=1.0):
@@ -217,19 +205,15 @@ def random_crop_arr(pil_image, image_size, min_crop_frac=0.8, max_crop_frac=1.0)
     # argument, which uses BOX downsampling at powers of two first.
     # Thus, we do it by hand to improve downsample quality.
     while min(*pil_image.size) >= 2 * smaller_dim_size:
-        pil_image = pil_image.resize(
-            tuple(x // 2 for x in pil_image.size), resample=Image.BOX
-        )
+        pil_image = pil_image.resize(tuple(x // 2 for x in pil_image.size), resample=Image.BOX)
 
     scale = smaller_dim_size / min(*pil_image.size)
-    pil_image = pil_image.resize(
-        tuple(round(x * scale) for x in pil_image.size), resample=Image.BICUBIC
-    )
+    pil_image = pil_image.resize(tuple(round(x * scale) for x in pil_image.size), resample=Image.BICUBIC)
 
     arr = np.array(pil_image)
     crop_y = random.randrange(arr.shape[0] - image_size + 1)
     crop_x = random.randrange(arr.shape[1] - image_size + 1)
-    return arr[crop_y: crop_y + image_size, crop_x: crop_x + image_size]
+    return arr[crop_y : crop_y + image_size, crop_x : crop_x + image_size]
 
 
 def get_image_filenames_for_label(label):

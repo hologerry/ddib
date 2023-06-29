@@ -4,13 +4,7 @@ import torch as th
 import torch.nn as nn
 
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
-from .nn import (
-    linear,
-    zero_module,
-    checkpoint,
-    normalization,
-    timestep_embedding,
-)
+from .nn import checkpoint, linear, normalization, timestep_embedding, zero_module
 
 
 class TimestepBlock(nn.Module):
@@ -51,12 +45,12 @@ class ResBlock(TimestepBlock):
     """
 
     def __init__(
-            self,
-            channels,
-            emb_channels,
-            dropout,
-            out_channels=None,
-            use_checkpoint=False,
+        self,
+        channels,
+        emb_channels,
+        dropout,
+        out_channels=None,
+        use_checkpoint=False,
     ):
         super().__init__()
         self.channels = channels
@@ -65,22 +59,13 @@ class ResBlock(TimestepBlock):
         self.out_channels = out_channels or channels
         self.use_checkpoint = use_checkpoint
 
-        self.in_layers = nn.Sequential(
-            normalization(channels),
-            nn.SiLU(),
-            linear(channels, self.out_channels)
-        )
-        self.emb_layers = nn.Sequential(
-            nn.SiLU(),
-            linear(emb_channels, self.out_channels)
-        )
+        self.in_layers = nn.Sequential(normalization(channels), nn.SiLU(), linear(channels, self.out_channels))
+        self.emb_layers = nn.Sequential(nn.SiLU(), linear(emb_channels, self.out_channels))
         self.out_layers = nn.Sequential(
             normalization(self.out_channels),
             nn.SiLU(),
             nn.Dropout(p=dropout),
-            zero_module(
-                linear(self.out_channels, self.out_channels)
-            )
+            zero_module(linear(self.out_channels, self.out_channels)),
         )
 
         if self.out_channels == channels:
@@ -95,9 +80,7 @@ class ResBlock(TimestepBlock):
         :param emb: an [N x emb_channels] Tensor of timestep embeddings.
         :return: an [N x C] Tensor of outputs.
         """
-        return checkpoint(
-            self._forward, (x, emb), self.parameters(), self.use_checkpoint
-        )
+        return checkpoint(self._forward, (x, emb), self.parameters(), self.use_checkpoint)
 
     def _forward(self, x, emb):
         h = self.in_layers(x)
@@ -122,14 +105,14 @@ class SyntheticModel(nn.Module):
     """
 
     def __init__(
-            self,
-            in_channels,
-            model_channels,
-            out_channels,
-            num_res_blocks,
-            dropout=0,
-            use_checkpoint=False,
-            use_fp16=False
+        self,
+        in_channels,
+        model_channels,
+        out_channels,
+        num_res_blocks,
+        dropout=0,
+        use_checkpoint=False,
+        use_fp16=False,
     ):
         super().__init__()
 
@@ -148,9 +131,7 @@ class SyntheticModel(nn.Module):
             linear(time_embed_dim, time_embed_dim),
         )
 
-        self.input_blocks = nn.ModuleList(
-            [TimestepEmbedSequential(linear(in_channels, model_channels))]
-        )
+        self.input_blocks = nn.ModuleList([TimestepEmbedSequential(linear(in_channels, model_channels))])
         layers = []
         for _ in range(num_res_blocks):
             layers.append(
@@ -175,7 +156,7 @@ class SyntheticModel(nn.Module):
                 model_channels,
                 dropout,
                 use_checkpoint=use_checkpoint,
-            )
+            ),
         )
 
         self.output_blocks = nn.ModuleList([])
@@ -192,11 +173,7 @@ class SyntheticModel(nn.Module):
         self.output_blocks.append(TimestepEmbedSequential(*layers))
 
         self.out = nn.Sequential(
-            normalization(model_channels * 2),
-            nn.SiLU(),
-            zero_module(
-                linear(model_channels * 2, out_channels)
-            )
+            normalization(model_channels * 2), nn.SiLU(), zero_module(linear(model_channels * 2, out_channels))
         )
 
     def convert_to_fp16(self):

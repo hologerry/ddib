@@ -5,26 +5,28 @@ Class-conditional image translation from one ImageNet class to another.
 import argparse
 import os
 import shutil
+
 from pathlib import Path
 
 import numpy as np
 import torch as th
 import torch.distributed as dist
 import torch.nn.functional as F
+
 from PIL import Image
 
 from guided_diffusion import dist_util, logger
 from guided_diffusion.image_datasets import (
+    get_image_filenames_for_label,
     load_source_data_for_domain_translation,
-    get_image_filenames_for_label
 )
 from guided_diffusion.script_util import (
-    model_and_diffusion_defaults,
-    classifier_defaults,
-    create_model_and_diffusion,
-    create_classifier,
     add_dict_to_argparser,
     args_to_dict,
+    classifier_defaults,
+    create_classifier,
+    create_model_and_diffusion,
+    model_and_diffusion_defaults,
 )
 
 
@@ -52,12 +54,8 @@ def main():
     logger.configure()
 
     logger.log("creating model and diffusion...")
-    model, diffusion = create_model_and_diffusion(
-        **args_to_dict(args, model_and_diffusion_defaults().keys())
-    )
-    model.load_state_dict(
-        dist_util.load_state_dict(args.model_path, map_location="cpu")
-    )
+    model, diffusion = create_model_and_diffusion(**args_to_dict(args, model_and_diffusion_defaults().keys()))
+    model.load_state_dict(dist_util.load_state_dict(args.model_path, map_location="cpu"))
     model.to(dist_util.dev())
     if args.use_fp16:
         model.convert_to_fp16()
@@ -65,9 +63,7 @@ def main():
 
     logger.log("loading classifier...")
     classifier = create_classifier(**args_to_dict(args, classifier_defaults().keys()))
-    classifier.load_state_dict(
-        dist_util.load_state_dict(args.classifier_path, map_location="cpu")
-    )
+    classifier.load_state_dict(dist_util.load_state_dict(args.classifier_path, map_location="cpu"))
     classifier.to(dist_util.dev())
     if args.classifier_use_fp16:
         classifier.convert_to_fp16()
@@ -95,9 +91,7 @@ def main():
 
     logger.log("running image translation...")
     data = load_source_data_for_domain_translation(
-        batch_size=args.batch_size,
-        image_size=args.image_size,
-        classes=source
+        batch_size=args.batch_size, image_size=args.image_size, classes=source
     )
 
     for i, (batch, extra) in enumerate(data):
@@ -142,7 +136,7 @@ def main():
             model_kwargs=target_y,
             cond_fn=cond_fn,
             device=dist_util.dev(),
-            eta=args.eta
+            eta=args.eta,
         )
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)
@@ -183,32 +177,22 @@ def create_argparser():
         "--model_path",
         type=str,
         default="./models/imagenet/256x256_diffusion.pt",
-        help="Path to the diffusion model weights."
+        help="Path to the diffusion model weights.",
     )
     parser.add_argument(
         "--classifier_path",
         type=str,
         default="./models/imagenet/256x256_classifier.pt",
-        help="Path to the classifier model weights."
+        help="Path to the classifier model weights.",
     )
-    parser.add_argument(
-        "--source",
-        type=str,
-        default="260,261,282,283",
-        help="Source domains."
-    )
-    parser.add_argument(
-        "--target",
-        type=str,
-        default="261,262,283,284",
-        help="Target domains."
-    )
+    parser.add_argument("--source", type=str, default="260,261,282,283", help="Source domains.")
+    parser.add_argument("--target", type=str, default="261,262,283,284", help="Target domains.")
     parser.add_argument(
         "--val_dir",
         type=str,
         default="",
         help="The local directory containing ImageNet validation dataset, "
-             "containing filenames like ILSVRC2012_val_000XXXXX.JPG."
+        "containing filenames like ILSVRC2012_val_000XXXXX.JPG.",
     )
     add_dict_to_argparser(parser, defaults)
     return parser
